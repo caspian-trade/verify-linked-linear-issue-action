@@ -31,6 +31,15 @@ const validData = [
   }
 ]
 
+const validData2 = [
+  {
+    performed_via_github_app: {
+      slug: 'linear'
+    },
+    body: '](https://linear.app/1234).'
+  }
+]
+
 const invalidData = [
   {
     performed_via_github_app: {
@@ -93,6 +102,20 @@ describe('action', () => {
 
   it('successfully finds the linear ticket', async () => {
     mockData = validData
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    // Verify that all of the core library functions were called correctly
+    expect(debugMock).toHaveBeenNthCalledWith(
+      1,
+      'Searching for Linear ticket link ...'
+    )
+    expect(noticeMock).toHaveBeenCalledWith('Found Linear ticket.')
+    expect(errorMock).not.toHaveBeenCalled()
+  })
+
+  it('successfully finds the linear ticket in revert PR format', async () => {
+    mockData = validData2
     await main.run()
     expect(runMock).toHaveReturned()
 
