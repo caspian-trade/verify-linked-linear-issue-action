@@ -17,6 +17,15 @@ export async function run(): Promise<void> {
       throw new Error('No pull request number found in context, exiting.')
     }
 
+    const requiredOnReverts = core.getInput('requiredOnReverts') === 'true'
+    const prTitle = context.payload.pull_request?.title || ''
+    const isRevert = prTitle.startsWith('Revert')
+
+    if (isRevert && !requiredOnReverts) {
+      core.notice(`Skipping Linear ticket check for revert PR: "${prTitle}"`)
+      return
+    }
+
     const comments = await octokit.rest.issues.listComments({
       issue_number: context.payload.pull_request?.number,
       owner: context.repo.owner,

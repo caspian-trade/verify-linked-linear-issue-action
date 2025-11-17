@@ -68,7 +68,8 @@ jest.mock('@actions/github', () => {
       },
       payload: {
         pull_request: {
-          number: 1234
+          number: 1234,
+          title: 'Test PR'
         }
       }
     }
@@ -80,6 +81,7 @@ let debugMock: jest.SpyInstance
 let errorMock: jest.SpyInstance
 let setFailedMock: jest.SpyInstance
 let noticeMock: jest.SpyInstance
+let getInputMock: jest.SpyInstance
 
 describe('action', () => {
   beforeEach(() => {
@@ -89,6 +91,7 @@ describe('action', () => {
     errorMock = jest.spyOn(core, 'error').mockImplementation()
     setFailedMock = jest.spyOn(core, 'setFailed').mockImplementation()
     noticeMock = jest.spyOn(core, 'notice').mockImplementation()
+    getInputMock = jest.spyOn(core, 'getInput').mockReturnValue('true')
   })
 
   it('successfully finds the linear ticket', async () => {
@@ -132,5 +135,41 @@ describe('action', () => {
       1,
       'No pull request number found in context, exiting.'
     )
+  })
+
+  it('skips check for revert PRs when requiredOnReverts is false', async () => {
+    getInputMock.mockReturnValue('false')
+    github.context.payload.pull_request = {
+      number: 1234,
+      title: 'Revert "Some commit message"'
+    }
+    mockData = invalidData
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    expect(noticeMock).toHaveBeenCalledWith(
+      'Skipping Linear ticket check for revert PR: "Revert "Some commit message""'
+    )
+    expect(createComment).not.toHaveBeenCalled()
+    expect(setFailedMock).not.toHaveBeenCalled()
+  })
+
+  it('requires check for revert PRs when requiredOnReverts is true', async () => {
+    getInputMock.mockReturnValue('true')
+    github.context.payload.pull_request = {
+      number: 1234,
+      title: 'Revert "Some commit message"'
+    }
+    mockData = invalidData
+    await main.run()
+    expect(runMock).toHaveReturned()
+
+    expect(createComment).toHaveBeenCalledWith({
+      issue_number: 1234,
+      owner: 'test',
+      repo: 'test',
+      body: `No Linear ticket found for this pull request. Please link an issue in Linear by mentioning the ticket.`
+    })
+    expect(setFailedMock).toHaveBeenNthCalledWith(1, 'No Linear ticket found.')
   })
 })

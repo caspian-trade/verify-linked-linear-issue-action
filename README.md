@@ -19,6 +19,8 @@ the check should fail and a comment will be added to the PR.
 ``` yaml
 - name: Verify Linked Issue
   uses: ZetaMinusOne/verify-linked-linear-issue-action@v0
+  with:
+    requiredOnReverts: false  # Optional: Skip check for PRs with title starting with "Revert" (default: true)
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
